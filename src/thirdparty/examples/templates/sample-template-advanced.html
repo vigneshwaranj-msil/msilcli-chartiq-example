@@ -1,0 +1,111 @@
+<!DOCTYPE html><!--
+This is a fully functional desktop-like example showing how to load a chart with a corresponding
+feature-rich user interface. It is intended mainly for larger screens and may not always render
+optimally on small devices.
+
+This template requires the Technical Analysis package. If you are using a different package, some
+features may not work.
+
+Customize this sample template as needed to meet your use case and to fit the screen size of your
+supported devices.
+--><html><head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="stylesheet" type="text/css" href="css/normalize.css" media="screen">
+<link rel="stylesheet" type="text/css" href="css/page-defaults.css" media="screen">
+<link rel="stylesheet" type="text/css" href="css/stx-chart.css" media="screen">
+<link rel="stylesheet" type="text/css" href="css/chartiq.css" media="screen">
+
+<script src="js/thirdparty/custom-elements.min.js"></script> <!-- Legacy Edge support for webcomponents -->
+</head>
+<body>
+
+<cq-context>
+
+</cq-context>
+
+<script type="module" crossorigin="use-credentials">
+// This inline script acts as the entry point, without creating a separate external file.
+
+import "./js/advanced.js";
+import "./js/addOns.js";
+import { CIQ } from "./js/components.js";
+
+/* Uncomment the following to access deprecated functions and namespaces. */
+//import "./js/deprecated.js";
+
+/* Uncomment the following lines if you are using these plug-ins. */
+//import "./plugins/activetrader/cryptoiq.js";
+//import "./plugins/analystviews/components.js";
+//import "./plugins/scriptiq/scriptiq.js";
+//import "./plugins/technicalinsights/components.js";
+//import "./plugins/tfc/tfc-loader.js";
+//import "./plugins/tfc/tfc-demo.js"; /* if using demo account class */
+//import "./plugins/timespanevent/timespanevent.js";
+//import "./plugins/visualearnings/visualearnings.js";
+
+/* Uncomment the following for the L2 simulator (required for the activetrader sample). */
+//import "./examples/feeds/L2_simulator.js";
+
+/* Template-specific imports */
+import getDefaultConfig from "./js/defaultConfiguration.js";
+
+import PerfectScrollbar from "./js/thirdparty/perfect-scrollbar.esm.js";
+
+import quotefeed from "./examples/feeds/quoteFeedSimulator.js";
+import "./examples/feeds/symbolLookupChartIQ.js";
+
+import "./examples/markets/marketDefinitionsSample.js";
+import "./examples/markets/marketSymbologySample.js";
+
+import marker from "./examples/markers/markersSample.js";
+import "./examples/markers/tradeAnalyticsSample.js";
+import "./examples/markers/videoSample.js";
+
+import "./examples/translations/translationSample.js";
+
+/* Remove if not using the forecasting simulator (required for the forecasting sample). */
+import forecastfeed from "./examples/feeds/quoteFeedForecastSimulator.js";
+
+/* Uncomment the following import statement to enable the Option Sentiment by Strike study. */
+//import "./js/extras/optionSentimentByStrike.js";
+
+/*
+ * Uncomment the following import statement to access the option chain simulator for option-based
+ * functionality, such as the Option Sentiment By Strike study.
+ *
+ * Make the option chain simulator the chart data source by setting the quoteFeed property (in
+ * the object parameter of the getDefaultConfig function call below) to the optionfeed variable,
+ * for example:
+ *
+ *     const config = getDefaultConfig({
+ *         markerSample: marker.MarkersSample,
+ *         scrollStyle: PerfectScrollbar,
+ *         quoteFeed: optionfeed,  // Provides simulated quote data and option data.
+ *         forecastQuoteFeed: forecastfeed
+ *     });
+ */
+//import optionfeed from "./examples/feeds/optionChainSimulator.js";
+
+// Create and customize default configuration
+
+const config = getDefaultConfig({
+	markerSample: marker.MarkersSample,
+	scrollStyle: PerfectScrollbar,
+	quoteFeed: quotefeed,
+	forecastQuoteFeed: forecastfeed
+});
+
+// Create the chart...
+		let stxx = config.createChart();
+
+		// Simulate L2 data
+		// In your implementation, you must instead load L2 data
+		// using https://documentation.chartiq.com/CIQ.ChartEngine.html#updateCurrentMarketData
+		//CIQ.simulateL2({ stx: stxx, onInterval: 1000, onTrade: true });
+
+		//...then add whatever code you wish!</script>
+
+
+</body></html>

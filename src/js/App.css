@@ -1,0 +1,9 @@
+/*
+==============Implement all the css using respective selectors here
+*/
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
