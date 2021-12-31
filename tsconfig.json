@@ -42,6 +42,6 @@
     "./dev",
     "./dist",
     "./build",
-    "./src/thirdparty/**/*"
+    "./src/thirdparty/bundles/*"
   ]
 }
