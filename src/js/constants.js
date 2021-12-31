@@ -7,4 +7,4 @@
  *  - Theme etc.,
  * All details has to be sent vvia URL query param
  */
-export const URL_QUERY_KEY = "data", CONTAINER_ID = "chartContainer", STORE_KEY = "chartStore";
+export const URL_QUERY_KEY = "data", CONTAINER_ID = "chartContainer", STORE_KEY = "chartStore", ANDROID_JS_INTERFACE_KEY = "charts";

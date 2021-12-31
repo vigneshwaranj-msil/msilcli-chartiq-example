@@ -20,6 +20,7 @@ export function fetchMarketRules(
 			.then((jsonResponse: any) => {
 				if (exchange in jsonResponse) {
 					marketRules = jsonResponse[exchange];
+					return marketRules.rules;
 				} else {
 					throw new Error("Unknown exchange");
 				}

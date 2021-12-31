@@ -23,10 +23,11 @@ export default abstract class BaseSymbolSearcher {
 		return ++this.#requestCounter;
 	}
 
-	protected initRequestController(requestNumber: number): AbortController {
-		this.abortRequest(requestNumber);
+	protected initRequestController(): AbortController {
+		this.abortRequest(this.#requestCounter);
+		this.newRequest();
 		let abortController: AbortController = new AbortController();
-		this.__requestHandler[requestNumber] = abortController;
+		this.__requestHandler[this.#requestCounter] = abortController;
 		return abortController;
 	}
 
@@ -37,14 +38,13 @@ export default abstract class BaseSymbolSearcher {
 	}
 
 	/**
-	 * @protected
 	 * @abstract
 	 * @method searchServerForSymbol
 	 * @description This function will contain the logic to request to Server to provide list of relevant symbol the user is searching for
 	 * @param {string} text Search input by the user
 	 * @param {HeadersInit} [headers] Additional requst headers i.e., X-Auth-Token etc.,
 	 */
-	protected abstract searchServerForSymbol(
+	abstract searchServerForSymbol(
 		text: string,
 		headers?: HeadersInit
 	): Promise<Response>;

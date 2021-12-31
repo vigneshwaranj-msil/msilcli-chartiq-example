@@ -41,6 +41,7 @@ export function removeChartEvents(stx: any) {
 
 function longHoldEventHandler({ stx }: any) {
 	//long pressed on charts
+	if (stx) { }
 }
 
 function handleChartScrollEvent({ stx }: any) {
@@ -50,12 +51,16 @@ function handleChartScrollEvent({ stx }: any) {
 	}
 }
 
-function newChartHandler({ stx }: any) {}
+function newChartHandler({ stx }: any) {
+	if (stx) { }
+}
 
 function changeTheme({ stx }: any) {
+	if (stx) { }
 	localStore.set("theme", previousStore().theme === "day" ? "night" : "day");
 }
 
 function handleChartSymbolChange({ stx, symbol }: any) {
+	if (stx) { }
 	console.log(`${symbol} Changed`);
 }

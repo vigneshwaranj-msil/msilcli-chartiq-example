@@ -9,4 +9,5 @@
  */
 export const URL_QUERY_KEY: string = "data",
 	CONTAINER_ID: string = "chartContainer",
-	STORE_KEY: string = "chartStore";
+	STORE_KEY: string = "chartStore",
+	ANDROID_JS_INTERFACE_KEY: string = "charts";

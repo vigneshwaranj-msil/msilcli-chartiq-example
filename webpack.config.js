@@ -1,4 +1,5 @@
 const path = require("path"),
+    fs = require("fs"),
     webpack = require("webpack"),
     cssExtractPlugin = require("extract-css-chunks-webpack-plugin"),
     htmlWebpackPlugin = require("html-webpack-plugin"),
@@ -16,8 +17,8 @@ module.exports = function(env) {
         ),
         environmentVariable = {
             url: {
-                symbolSearch: "",
-                feed: ""
+                symbolSearch: "http://localhost:8081/search/",
+                feed: "http://localhost:8081/quotes/hist"
             }
         },
         loaders = {
@@ -27,13 +28,15 @@ module.exports = function(env) {
                     babelrc: false
                 }
             }
-        };
+        },
+        // This logic is to check if index.ts is available then make use of index.ts else use index.js as an entry point
+        getAppLocation = isTypeScript => path.resolve(srcDirectory, `index.${isTypeScript ? "ts" : "js"}`);
     return {
         target: "web",
         mode: isProduction ? "production" : "development",
         entry: {
             polyfill: path.resolve(srcDirectory, "polyfill.js"),
-            app: path.resolve(srcDirectory, "index.ts")
+            app: fs.existsSync(getAppLocation(true)) ? getAppLocation(true) : getAppLocation(false),
         },
         output: {
             path: deploymentDirectory,
@@ -153,7 +156,7 @@ module.exports = function(env) {
                 ]
             }),
             new webpack.ProgressPlugin(),
-            new BundleAnalyzerPlugin({openAnalyzer:false}),
+            new BundleAnalyzerPlugin({ openAnalyzer: false }),
             new terserPlugin({
                 extractComments: true,
                 terserOptions: {

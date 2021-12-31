@@ -32,3 +32,11 @@ export interface Configuration {
 	onChartReady?: Function;
 	marketFactory?: Function;
 }
+
+export function extractCssUrl(): string {
+	let link: HTMLLinkElement | null = document.querySelector("link[rel='stylesheet']");
+	if (link) {
+		return link.href;
+	}
+	return "";
+}

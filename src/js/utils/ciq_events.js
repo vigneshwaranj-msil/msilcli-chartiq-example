@@ -18,6 +18,7 @@ export function removeChartEvents(stx) {
 }
 function longHoldEventHandler({ stx }) {
     //long pressed on charts
+    if (stx) { }
 }
 function handleChartScrollEvent({ stx }) {
     if (stx && stx.chart && stx.chart.scroll <= 0) {
@@ -25,10 +26,14 @@ function handleChartScrollEvent({ stx }) {
         stx.draw();
     }
 }
-function newChartHandler({ stx }) { }
+function newChartHandler({ stx }) {
+    if (stx) { }
+}
 function changeTheme({ stx }) {
+    if (stx) { }
     localStore.set("theme", previousStore().theme === "day" ? "night" : "day");
 }
 function handleChartSymbolChange({ stx, symbol }) {
+    if (stx) { }
     console.log(`${symbol} Changed`);
 }

@@ -5,7 +5,7 @@ import APIManager from "./feeds/ciq-apiManager";
 import { fetchMarketRules } from "./market/marketFactory";
 import { Configuration, URLProperties } from "./utils/helpers";
 import { extractDetailsFromURL } from "./utils/url";
-import { CONTAINER_ID } from "./constants";
+import { ANDROID_JS_INTERFACE_KEY, CONTAINER_ID } from "./constants";
 import { previousStore } from "./utils/store";
 import { restoreLayout } from "./utils/ciq_ui";
 import CIQSymblSearch from "./feeds/ciq-symbolSearcher";
@@ -13,11 +13,9 @@ import { initChartEvents } from "./utils/ciq_events";
 import "chartLibrary/ciq_init";
 import getDefaultConfig from "chartLibrary/js/defaultConfiguration";
 import { CIQ } from "chartLibrary/js/chartiq";
+import MarketRule from "@msf/msf-charts-helper/dist/market/rules";
+import responseFromExternalInterfaces from "./utils/deviceInterface";
 
-// const CIQ:any = {UI:{Context:()=>{}}},
-// getDefaultConfig:any = ()=>{};
-
-declare const process: { env: any };
 
 let chartManager: ChartDataManager,
 	urlData: URLProperties = extractDetailsFromURL(),
@@ -25,6 +23,7 @@ let chartManager: ChartDataManager,
 	stxxChartEngine: any,
 	apiManager: APIManager = new APIManager(),
 	UIContext: any,
+	marketRules: MarketRule[] = [],
 	symbolSearcher: CIQSymblSearch = new CIQSymblSearch({
 		url: process.env.url.symbolSearch
 	});
@@ -45,7 +44,11 @@ function urlFactory(): string {
  * @returns {string}
  */
 function resolutionFactory(): string {
-	return convertPeriodAndIntervalToResolution(stxxChartEngine);
+	return stxxChartEngine ? convertPeriodAndIntervalToResolution(stxxChartEngine) : "1";
+}
+
+function rulesFactory(): MarketRule[] {
+	return marketRules;
 }
 
 function loadChart(stxx: any, symbol: any, cb: Function | undefined) {
@@ -84,7 +87,7 @@ function updateChangeSymbolLogic(stxx: any) {
 		if (this.loader) {
 			this.loader.show();
 		}
-		loadChart(stxx, data, this.loader.hide);
+		loadChart(stxx, data, () => this.loader && this.loader.hide);
 	};
 	restoreLayout(stxx, previousStore());
 }
@@ -93,6 +96,7 @@ function initializeChart(): void {
 	fetchMarketRules(urlData.symbol.exchange)
 		.then((rules) => {
 			if (rules) {
+				marketRules = rules;
 				chartManager = new ChartDataManager({
 					symbol: {
 						symbolId: urlData.symbol.symbolId,
@@ -101,9 +105,16 @@ function initializeChart(): void {
 					},
 					api: {
 						url: urlFactory,
-						rules
+						rules: rulesFactory
 					},
-					resolutionFactory
+					resolutionFactory,
+					deviceInterface: {
+						androidTag: ANDROID_JS_INTERFACE_KEY,
+						onMessage: responseFromExternalInterfaces
+					},
+					iframeInterface: {
+						onMessage: responseFromExternalInterfaces
+					}
 				});
 			}
 			/**
@@ -111,16 +122,16 @@ function initializeChart(): void {
 			 */
 			if (!hasChartLoaded && stxxChartEngine === undefined) {
 				let configuration: Configuration = {
-						symbol: urlData.symbol.symbolId,
-						theme: urlData.theme || previousStore().theme,
-						datafeed: apiManager,
-						containerId: CONTAINER_ID,
-						onChartReady: function () {
-							hasChartLoaded = true;
-							initChartEvents(stxxChartEngine);
-						},
-						lastStoredLayout: previousStore().layout
+					symbol: urlData.symbol.symbolId,
+					theme: urlData.theme || previousStore().theme,
+					datafeed: apiManager,
+					containerId: CONTAINER_ID,
+					onChartReady: function () {
+						hasChartLoaded = true;
+						initChartEvents(stxxChartEngine);
 					},
+					lastStoredLayout: previousStore().layout
+				},
 					config = getDefaultConfig({
 						chartEngineParams: {
 							layout: { ...configuration.lastStoredLayout }
@@ -139,6 +150,14 @@ function initializeChart(): void {
 				);
 				updateChangeSymbolLogic(stxxChartEngine);
 				UIContext.changeSymbol();
+				Object.defineProperties(window, {
+					chartManager: {
+						get: () => chartManager
+					},
+					stxx: {
+						get: () => stxxChartEngine
+					}
+				})
 			}
 		})
 		.catch((err) => console.error(err));

@@ -2,11 +2,12 @@ import { Candle } from "@msf/msf-charts-helper/dist/feeds/utils";
 import { ChartIQCandle } from "@msf/msf-charts-helper/dist/utils";
 import {
 	convertCandleToChartIQCandle,
+	convertChartIQCandleToCandle,
 	convertPeriodAndIntervalToResolution,
 	updateBroadcastCandleWithRealTimeChartUpdates
 } from "@msf/msf-charts-helper/dist/utils/chartiq";
 import { chartManager } from "../ciq_App";
-import BaseAPIManager from "./baseApiManager";
+import BaseAPIManager from "./ciq-baseApiManager";
 type ResultCallback = (params: ResultParams) => void;
 /**
  * @interface Params
@@ -77,6 +78,7 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 	constructor(refreshInterval?: number) {
 		super(refreshInterval);
 
+		this.__customCallback = this.__customCallback.bind(this);
 		this.announceError = this.announceError.bind(this);
 		this.fetchInitialData = this.fetchInitialData.bind(this);
 		this.fetchPaginationData = this.fetchPaginationData.bind(this);
@@ -85,11 +87,11 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 		this.unsubscribe = this.unsubscribe.bind(this);
 	}
 
-	protected __onSuccessResponseFromAPI(
+	onSuccessResponseFromAPI(
 		cb: ResultCallback,
 		jsonResponse: any
 	): void {
-		jsonResponse = jsonResponse || [];
+		jsonResponse = jsonResponse.data || [];
 		let formattedData: Array<Candle> = this.__formatChartData(jsonResponse);
 		//toggling the streaming status
 		if (!chartManager.isStreaming) {
@@ -103,7 +105,7 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 		});
 	}
 
-	protected __onFailureResponse(err: any, cb: ResultCallback) {
+	onFailureResponse(err: any, cb: ResultCallback) {
 		console.error(err);
 		cb({
 			moreAvailable: false,
@@ -111,8 +113,26 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 		});
 	}
 
+	private __customCallback(cb: ResultCallback): ResultCallback {
+		return (params: ResultParams) => {
+			cb(params);
+			if (params.quotes.length) {
+				chartManager.broadcastHandler.init(convertChartIQCandleToCandle(params.quotes[params.quotes.length - 1]))
+				chartManager.updateStreamingStatus(true);
+			}
+		}
+	}
+
 	protected __formatChartData(jsonResponse: any): Candle[] {
 		return (jsonResponse || [])
+			.map((respCandle: any): Candle => ({
+				date: new Date(respCandle.date),
+				open: parseFloat(respCandle.open),
+				close: parseFloat(respCandle.close),
+				high: parseFloat(respCandle.high),
+				low: parseFloat(respCandle.low),
+				volume: parseFloat(respCandle.volune)
+			}))
 			.filter(
 				(candle: Candle) =>
 					!!candle.date &&
@@ -128,7 +148,7 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 			);
 	}
 
-	protected checkForRealTimeCandlesUpdate(cb: Function): Function {
+	checkForRealTimeCandlesUpdate(cb: Function): () => void {
 		return () => {
 			let broadcastCandle: Candle =
 				chartManager.broadcastHandler.broadcastCandle;
@@ -139,32 +159,32 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 	/**
 	 * @method announceError
 	 * @description THis function will be called every time there is any error with respect to API response which we send to CALLBACK
-	 * @param {Params} params The params has all relevant values
-	 * @param {ResultCallback} dataCallback Callback which was sent to fetch request that had some error
+	 * @param {Params} _params The params has all relevant values
+	 * @param {ResultCallback} _dataCallback Callback which was sent to fetch request that had some error
 	 */
-	announceError(params: Params, dataCallback: ResultCallback): void {
+	announceError(_params: Params, _dataCallback: ResultCallback): void {
 		console.error("Something wrong happened");
 	}
 	/**
 	 * @method fetchInitialData
 	 * @description Send a request to Data server to get data for the symbol selected for the visible x-axis[Date] range
-	 * @param {string} symbol - Symbol to request data for
-	 * @param {Date} startDate - Start date i.e., the left end value fo the x-axis
-	 * @param {Date} endDate - End date i.e., the right end value of the x-axis
+	 * @param {string} _symbol - Symbol to request data for
+	 * @param {Date} _startDate - Start date i.e., the left end value fo the x-axis
+	 * @param {Date} _endDate - End date i.e., the right end value of the x-axis
 	 * @param {Params} params additional params
 	 * @param {ResultCallback} cb - Callback which needs to be provided with data or other details
 	 */
 	fetchInitialData(
-		symbol: string,
-		startDate: Date,
-		endDate: Date,
+		_symbol: string,
+		_startDate: Date,
+		_endDate: Date,
 		params: Params,
 		cb: ResultCallback
 	): void {
 		chartManager.updateStreamingStatus(false);
 		const resolution: string = convertPeriodAndIntervalToResolution(
-				params.stx
-			),
+			params.stx
+		),
 			{ from, to } = chartManager.apiHandler.generateRequestRange(
 				resolution,
 				true
@@ -186,26 +206,26 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 					},
 					"POST"
 				)
-				.then((res) => res.json())
-				.then((jsonResponse) =>
-					this.__onSuccessResponseFromAPI(cb, jsonResponse)
+				.then((res: Response) => res.json())
+				.then((jsonResponse: any) =>
+					this.onSuccessResponseFromAPI(this.__customCallback(cb), jsonResponse)
 				)
-				.catch((err) => this.__onFailureResponse(err, cb));
+				.catch((err) => this.onFailureResponse(err, this.__customCallback(cb)));
 		}
 	}
 	/**
 	 * @method fetchPaginationData
 	 * @description Send a request to Data server to get data for the symbol selected for the visible x-axis[Date] range
-	 * @param {string} symbol - Symbol to request data for
-	 * @param {Date} startDate - Start date i.e., the left end value fo the x-axis
-	 * @param {Date} endDate - End date i.e., the right end value of the x-axis
+	 * @param {string} _symbol - Symbol to request data for
+	 * @param {Date} _startDate - Start date i.e., the left end value fo the x-axis
+	 * @param {Date} _endDate - End date i.e., the right end value of the x-axis
 	 * @param {Params} params additional params
 	 * @param {ResultCallback} cb - Callback which needs to be provided with data or other details
 	 */
 	fetchPaginationData(
-		symbol: string,
-		startDate: Date,
-		endDate: Date,
+		_symbol: string,
+		_startDate: Date,
+		_endDate: Date,
 		params: Params,
 		cb: ResultCallback
 	): void {
@@ -230,9 +250,9 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 					},
 					"POST"
 				)
-				.then((res) => res.json())
-				.then((jsonRes) => this.__onSuccessResponseFromAPI(cb, jsonRes))
-				.catch((err) => this.__onFailureResponse(err, cb));
+				.then((res: Response) => res.json())
+				.then((jsonRes: any) => this.onSuccessResponseFromAPI(this.__customCallback(cb), jsonRes))
+				.catch((err: any) => this.onFailureResponse(err, this.__customCallback(cb)));
 		}
 	}
 	/**
@@ -240,30 +260,32 @@ export default class APIManager extends BaseAPIManager implements IChartIQFeed {
 	 * @description Called by the Framework to get the recent data to update REAL time updates i.e., broadcast/streaming
 	 * @param {string} symbol - symbol for the data request
 	 * @param {Date} startDate - The start date mostly the current time
-	 * @param {Params} params - Additional params
-	 * @param {ResultCallback} cb - Callback to pass the data
+	 * @param {Params} _params - Additional params
+	 * @param {ResultCallback} _cb - Callback to pass the data
 	 */
 	fetchUpdateData(
 		symbol: string,
 		startDate: Date,
-		params: Params,
-		cb: ResultCallback
+		_params: Params,
+		_cb: ResultCallback
 	): void {
 		console.warn(
 			`Requesting for recent data\nFor Symbol = ${symbol}\nDate=${startDate.toString()}`
 		);
 	}
 	subscribe(params: Params): void {
-		this.__addSubscription(
+		this.addSubscription(
 			chartManager.symbol.toString(),
-			(candle: ChartIQCandle) =>
-				updateBroadcastCandleWithRealTimeChartUpdates(
-					params.stx,
-					candle
-				)
+			(candle: ChartIQCandle) => {
+				if (params.stx) {
+					updateBroadcastCandleWithRealTimeChartUpdates(
+						params.stx,
+						candle
+					)
+				}
+			}
 		);
 	}
-	unsubscribe(params: Params): void {
-		throw new Error("Method not implemented.");
+	unsubscribe(_params: Params): void {
 	}
 }

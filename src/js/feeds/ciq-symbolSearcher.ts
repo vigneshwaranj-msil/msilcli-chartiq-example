@@ -29,7 +29,7 @@ export default class CIQSymblSearch extends BaseSymbolSearcher {
 		}
 	}
 
-	acceptText(text: string, filter: string, maxResults: number, cb: Function) {
+	acceptText(text: string, _filter: string, maxResults: number, cb: Function) {
 		maxResults = maxResults || 10;
 		this.searchServerForSymbol(text)
 			.then((res) => res.json())
@@ -42,13 +42,12 @@ export default class CIQSymblSearch extends BaseSymbolSearcher {
 			});
 	}
 
-	protected searchServerForSymbol(
+	searchServerForSymbol(
 		text: string,
 		headers?: HeadersInit
 	): Promise<Response> {
-		let requestNumber: number = this.newRequest(),
-			abortController: AbortController =
-				this.initRequestController(requestNumber);
+		let abortController: AbortController =
+			this.initRequestController();
 		return fetch(`${this.url}/${text}`, {
 			signal: abortController.signal,
 			headers

@@ -1,4 +1,5 @@
 import { Candle } from "@msf/msf-charts-helper/dist/feeds/utils";
+import { chartManager } from "../ciq_App";
 
 /**
  * @interface SubscriptionMap
@@ -17,10 +18,10 @@ export default abstract class BaseAPIManager {
 
 		this.checkForRealTimeCandlesUpdate =
 			this.checkForRealTimeCandlesUpdate.bind(this);
-		this.__onFailureResponse = this.__onFailureResponse.bind(this);
-		this.__onSuccessResponseFromAPI =
-			this.__onSuccessResponseFromAPI.bind(this);
-		this.__addSubscription = this.__addSubscription.bind(this);
+		this.onFailureResponse = this.onFailureResponse.bind(this);
+		this.onSuccessResponseFromAPI =
+			this.onSuccessResponseFromAPI.bind(this);
+		this.addSubscription = this.addSubscription.bind(this);
 		this.clearSubscriptions = this.clearSubscriptions.bind(this);
 		this.__generateRequestBody = this.__generateRequestBody.bind(this);
 	}
@@ -32,28 +33,26 @@ export default abstract class BaseAPIManager {
 	 * @param {Function} cb - Callback from Framework which will update the Chart's
 	 * @returns {Function}
 	 */
-	protected abstract checkForRealTimeCandlesUpdate(cb: Function): Function;
+	abstract checkForRealTimeCandlesUpdate(cb: Function): Function;
 	/**
 	 * @abstract
-	 * @protected
-	 * @method __onSuccessResponseFromAPI
+	 * @method onSuccessResponseFromAPI
 	 * @description Function will be called on successfull response from the API
 	 * @param {Function} callback function from Framework which will be provided with all the data that has to be plotted on charts
 	 * @param {any} jsonResponse - jsonResponse from the API
 	 */
-	protected abstract __onSuccessResponseFromAPI(
+	abstract onSuccessResponseFromAPI(
 		callback: Function,
 		jsonResponse: any
 	): void;
 	/**
 	 * @abstract
-	 * @protected
-	 * @method __onFailureResponse
+	 * @method onFailureResponse
 	 * @description Function called on error response from API
 	 * @param {any} error Error occurred
 	 * @param {Function} callback Framework's function which will passed with Data from API that will be plotted on charts
 	 */
-	protected abstract __onFailureResponse(
+	abstract onFailureResponse(
 		error: any,
 		callback: Function
 	): void;
@@ -66,10 +65,10 @@ export default abstract class BaseAPIManager {
 	 */
 	protected abstract __formatChartData(jsonResponse: any): Array<Candle>;
 
-	protected get refreshInterval(): number {
+	get refreshInterval(): number {
 		return this.#refreshInterval * 1e3;
 	}
-	/**
+	/** 
 	 * @method clearSubscriptions
 	 * @description Will clear all the existing interval's callback using clearInterval
 	 */
@@ -83,13 +82,12 @@ export default abstract class BaseAPIManager {
 		);
 	}
 	/**
-	 * @protected
 	 * @description Adds a new subscription for the given symbol which will be called for every refreshInterval's second
-	 * @method __addSubscription
+	 * @method addSubscription
 	 * @param {string} symbolId - active symbol on charts
 	 * @param {Function} callbackFromFramework - The callback from framework we will send our candle to this function and it will update the API
 	 */
-	protected __addSubscription(
+	addSubscription(
 		symbolId: string,
 		callbackFromFramework: Function
 	): void {
@@ -97,13 +95,14 @@ export default abstract class BaseAPIManager {
 		subscriptionList = subscriptionList ? [...subscriptionList] : [];
 		subscriptionList.push(
 			window.setInterval(() => {
-				this.checkForRealTimeCandlesUpdate(callbackFromFramework);
+				if (chartManager.isStreaming) {
+					this.checkForRealTimeCandlesUpdate(callbackFromFramework)();
+				}
 			}, this.refreshInterval)
 		);
 	}
 
 	/**
-	 * @protected
 	 * @method __generateRequestBody
 	 * @description Returns the request object / payload which will sent to Data server that will returns the data
 	 * @param {Date} from the start date of the response
@@ -112,17 +111,19 @@ export default abstract class BaseAPIManager {
 	 * @param {string} resolution The active resolution on chart
 	 * @returns {any}
 	 */
-	protected __generateRequestBody(
+	__generateRequestBody(
 		from: Date,
 		to: Date,
 		symbolId: string,
 		resolution: string
 	): any {
+		let isDailyCandle: boolean = /[DWM]/.test(resolution);
 		return {
 			from: from.toISOString(),
 			to: to.toISOString(),
 			symbolId,
-			resolution
+			time: isDailyCandle ? 1 : parseInt(resolution, 10),
+			period: isDailyCandle ? "day" : "min"
 		};
 	}
 }

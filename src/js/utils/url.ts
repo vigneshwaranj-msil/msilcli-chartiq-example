@@ -23,3 +23,12 @@ export function extractDetailsFromURL(): URLProperties {
 		throw new Error("URL query is not being passed");
 	}
 }
+
+export function changeSymbol(newURLJSONString: string): Promise<URLProperties | void> {
+	if (newURLJSONString) {
+		urlHandler.set(URL_QUERY_KEY, newURLJSONString);
+		return Promise.resolve(extractDetailsFromURL());
+	} else {
+		return Promise.resolve();
+	}
+}
